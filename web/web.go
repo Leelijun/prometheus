@@ -132,7 +132,7 @@ type Options struct {
 	UserAssetsPath       string
 	ConsoleTemplatesPath string
 	ConsoleLibrariesPath string
-	EnableQuit           bool
+	EnableLifecycle      bool
 	EnableAdminAPI       bool
 }
 
@@ -207,15 +207,19 @@ func New(o *Options) *Handler {
 		router.Get("/user/*filepath", instrf("user", route.FileServe(o.UserAssetsPath)))
 	}
 
-	if o.EnableQuit {
+	if o.EnableLifecycle {
 		router.Post("/-/quit", h.quit)
+		router.Post("/-/reload", h.reload)
+	} else {
+		router.Post("/-/quit", func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte("Lifecycle APIs are not enabled"))
+		})
+		router.Post("/-/reload", func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte("Lifecycle APIs are not enabled"))
+		})
 	}
-
-	router.Post("/-/reload", h.reload)
-	router.Get("/-/reload", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(w, "This endpoint requires a POST request.\n")
-	})
 
 	router.Get("/debug/*subpath", http.DefaultServeMux.ServeHTTP)
 	router.Post("/debug/*subpath", http.DefaultServeMux.ServeHTTP)
